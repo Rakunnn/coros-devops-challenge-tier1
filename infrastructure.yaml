@@ -6,10 +6,31 @@ Parameters:
     Description: An environment name that is prefixed to resource names
     Type: String
   
+
   DomainName:
     Description: The name of the domain. Specify a fully qualified domain name, for example, www.example.com
-    Default: 'www.racoros-tier1.apperdevops.com'
+    Default: 'www.apperdevops.com'
     Type: String
+
+  RecordType:
+    Description: The DNS record type.
+    Type: String
+
+  ResourceRecords:
+    Description: One or more values that correspond with the value that you specified for the Type property.
+    Type: CommaDelimitedList
+ 
+  TTL:
+    Description: DNS record TTL.
+    Default: '86400'
+    Type: String
+
+  ZoneName:
+    AllowedPattern: (^[a-z][a-z][a-z]-[a-z]-[a-z][a-z][a-z]$)
+    Description: Application environment for which this network is being created. e.g. racoros-tierX
+    Type: String
+    AllowedValues:
+      - 'racoros-tier1'
 
 
   VpcCIDR:
@@ -42,13 +63,35 @@ Parameters:
     Description: Enter t2.micro, m1.small, or m1.large. Default is t2.micro.
 
 Resources:
-
-  DNS:
-    Type: 'AWS::Route53::HostedZone'
+  RecordSet:
+    Type: AWS::Route53::RecordSet
     Properties:
-      Name: !Ref DomainName
+      Name:
+        Fn::Join:
+        - '.'
+        - - Ref: DomainName
+          - Ref: ZoneName
+      Type:
+        Ref: RecordType
+      TTL:
+        Ref: TTL
+      ResourceRecords:
+        Ref: ResourceRecords
 
- VPC:
+  cloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: 'true'
+        Aliases:
+          Fn::Join:
+          - '.'
+          - - Ref: ZoneName
+            - Ref: DomainName
+      ViewerCertificate:
+          CloudFrontDefaultCertificate: 'true'
+ 
+  VPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref VpcCIDR
@@ -57,6 +100,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Ref EnvironmentName
+
 
 
 
