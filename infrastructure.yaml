@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Beginners challenge (tier 1). Implement a simple web server using AWS.
+
+Parameters:
+
+
+
+Resources:
+
+
+Outputs:
+
+
+
