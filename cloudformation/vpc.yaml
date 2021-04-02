@@ -1,40 +1,51 @@
-AWSTemplateFormatVersion: "2010-09-09"
-Description: Beginners challenge (tier 1). Implement a simple web server using AWS.
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This template creates vpc with public, private, database subnets
 
 Parameters:
-  EnvironmentName: 
-    Description: An environment name that is prefixed to resource names
+  EnvironmentName:
+    Default: RacorosTier1
+    Description: Please enter the Environment Name for this VPC
     Type: String
 
   VpcCidr:
-    Description: IP subnet for VPC. Default "10.0.0.0/16"
+    Description: IP subnet for VPC. Default "10.4.0.0/16"
     Type: String
-    Default: 10.0.0.0/16
+    Default: 10.4.0.0/16
+
+  PublicSubnet1Cidr:
+    Description:  Public IP subnet under AZ1.Default "10.5.1.0/24"
+    Type: String
+    Default: 10.4.1.0/24
     ConstraintDescription: Must be a valid CIDR range of the form x.x.x.x/x
 
-  PublicSubnetCidr:
-    Description:  Public IP subnet.Default "10.0.1.0/24"
+  PublicSubnet2Cidr:
     Type: String
-    Default: 10.0.1.0/24
+    Description:  Public IP subnet under AZ2.Default "10.5.2.0/24"
+    Default: 10.4.2.0/24
     ConstraintDescription: Must be a valid CIDR range of the form x.x.x.x/x
 
   PrivateSubnet1Cidr:
+    Description: Private IP subnet used for AZ1.  Default "10.5.3.0/24"
     Type: String
-    Description: Private IP subnet used for AZ1.  Default "10.3.0.0/24"
-    Default: 10.0.2.0/24
-    AllowedPattern: ^([0-9]+\.){3}[0-9]+\/[0-9]+$
-    MinLength: 9
-    MaxLength: 18
+    Default: 10.4.3.0/24
     ConstraintDescription: Must be a valid CIDR range of the form x.x.x.x/x
 
   PrivateSubnet2Cidr:
+    Description: Private IP subnet used for AZ2.  Default "10.5.4.0/24"
     Type: String
-    Description: Private IP subnet used for AZ2.  Default "10.3.0.0/24"
-    Default: 10.0.3.0/24
-    AllowedPattern: ^([0-9]+\.){3}[0-9]+\/[0-9]+$
-    MinLength: 9
-    MaxLength: 18
+    Default: 10.4.4.0/24
     ConstraintDescription: Must be a valid CIDR range of the form x.x.x.x/x
+
+  DatabaseSubnet1Cdir:
+    Description: Database IP subnet used for AZ1.  Default "10.5.4.0/24"
+    Type: String
+    Default: 10.4.13.0/24
+    ConstraintDescription: Must be a valid CIDR range of the form x.x.x.x/x
+
+  DatabaseSubnet2Cdir:
+    Default: 10.4.14.0/24
+    Description: Please enter the IP range (CIDR notation) for this Database Subnet B
+    Type: String
 
 Resources:
   VPC:
@@ -51,7 +62,6 @@ Resources:
             - - !Ref AWS::StackName
               - VPC
 
-  
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -61,64 +71,49 @@ Resources:
             Fn::Join:
             - '-'
             - - !Ref AWS::StackName
-              - IGW
+              - Internet Gateway
 
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
- 
-  PublicSubnet:
+      VpcId: !Ref VPC
+  
+  PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId:
-        Ref: VPC
-      CidrBlock:
-        Ref: PublicSubnetCidr
-      Tags:
-        - Key: Name
-          Value: 
-            Fn::Join:
-            - '-'
-            - - !Ref AWS::StackName
-              - Public Subnet
-
-  PrivateSubnetAZ1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId:
-        Ref: VPC      
       AvailabilityZone: !Select
         - 0
         - Fn::GetAZs: !Ref AWS::Region
+      VpcId:
+        Ref: VPC
       CidrBlock:
-        Ref: PrivateSubnet1Cidr
+        Ref: PublicSubnet1Cidr
       Tags:
         - Key: Name
           Value: 
             Fn::Join:
             - '-'
             - - !Ref AWS::StackName
-              - Private Subnet (AZ1)
+              - Public Subnet under AZ1
 
-  PrivateSubnetAZ2:
+  PublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId:
-        Ref: VPC
       AvailabilityZone: !Select
         - 1
         - Fn::GetAZs: !Ref AWS::Region
+      VpcId:
+        Ref: VPC
       CidrBlock:
-        Ref: PrivateSubnet2Cidr
+        Ref: PublicSubnet2Cidr
       Tags:
         - Key: Name
           Value: 
             Fn::Join:
             - '-'
             - - !Ref AWS::StackName
-              - Private Subnet (AZ2)
+              - Public Subnet under AZ2
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -134,58 +129,274 @@ Resources:
 
   PublicRoute:
     Type: AWS::EC2::Route
+    DependsOn: AttachGateway
     Properties:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
-  PublicSubnetRouteTableAssociation:
+  PublicSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PublicSubnet
+    Properties: 
       RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
 
-  PrivateRouteTable:
-    Type: AWS::EC2::RouteTable
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref VPC
+      VpcId:
+        Ref: VPC      
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
+      MapPublicIpOnLaunch: false
+      CidrBlock:
+        Ref: PrivateSubnet1Cidr
       Tags:
         - Key: Name
           Value: 
             Fn::Join:
             - '-'
             - - !Ref AWS::StackName
-              - Public route table 
-              
+              - Private Subnet (AZ1)
 
-  PrivateSubnetRouteTableAssociation1:
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC      
+      AvailabilityZone: !Select
+        - 1
+        - Fn::GetAZs: !Ref AWS::Region
+      MapPublicIpOnLaunch: false
+      CidrBlock:
+        Ref: PrivateSubnet2Cidr
+      Tags:
+        - Key: Name
+          Value: 
+            Fn::Join:
+            - '-'
+            - - !Ref AWS::StackName
+              - Private Subnet (AZ2)
+
+  DatabaseSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC      
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
+      MapPublicIpOnLaunch: false
+      CidrBlock:
+        Ref: DatabaseSubnet1Cdir
+      Tags:
+        - Key: Name
+          Value: 
+            Fn::Join:
+            - '-'
+            - - !Ref AWS::StackName
+              - Database Subnet (AZ1)
+
+  DatabaseSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC      
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
+      MapPublicIpOnLaunch: false
+      CidrBlock:
+        Ref: DatabaseSubnet2Cdir
+      Tags:
+        - Key: Name
+          Value: 
+            Fn::Join:
+            - '-'
+            - - !Ref AWS::StackName
+              - Database Subnet (AZ2)
+
+  EipNatAZ1:
+    Type: AWS::EC2::EIP
+    DependsOn: AttachGateway
+    Properties: 
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: 
+            Fn::Join:
+            - '-'
+            - - !Ref AWS::StackName
+              - Elastic IP for NAT gateway.
+
+  EipNatAZ2:
+    Type: AWS::EC2::EIP
+    DependsOn: AttachGateway
+    Properties: 
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: 
+            Fn::Join:
+            - '-'
+            - - !Ref AWS::StackName
+              - Elastic IP for NAT gateway under AZ 2.
+
+  NatAZ1:
+    DependsOn: InternetGateway
+    Type: AWS::EC2::NatGateway
+    Properties: 
+      SubnetId: !Ref PublicSubnet1
+      AllocationId:
+        Fn::GetAtt:
+        - EipNatAZ1
+        - AllocationId
+      Tags:
+        - Key: Name
+          Value: 
+            Fn::Join:
+            - '-'
+            - - !Ref AWS::StackName
+              - NAT under AZ1
+
+  NatAZ2:
+    Type: AWS::EC2::NatGateway
+    Properties: 
+      SubnetId: !Ref PublicSubnet2
+      AllocationId:
+        Fn::GetAtt:
+        - EipNatAZ2
+        - AllocationId
+      Tags:
+        - Key: Name
+          Value: 
+            Fn::Join:
+            - '-'
+            - - !Ref AWS::StackName
+              - NAT under AZ2
+
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub ${EnvironmentName}-Private Routes (AZ1)
+      - Key: Tier
+        Value: Private
+
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub ${EnvironmentName}-Private Routes (AZ2)
+      - Key: Tier
+        Value: Private
+
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatAZ1
+      RouteTableId: !Ref PrivateRouteTable1
+
+  PrivateRoute2:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatAZ2
+      RouteTableId: !Ref PrivateRouteTable2
+
+  PrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref PrivateSubnetAZ1
-      RouteTableId: !Ref PrivateRouteTable
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivateSubnet1
 
-  PrivateSubnetRouteTableAssociation2:
+  PrivateSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref PrivateSubnetAZ2
-      RouteTableId: !Ref PrivateRouteTable
+      RouteTableId: !Ref PrivateRouteTable2
+      SubnetId: !Ref PrivateSubnet2
+
+  DatabaseSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref DatabaseSubnet1
+
+  DatabaseSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      SubnetId: !Ref DatabaseSubnet2
 
 Outputs:
   outputVpcId:
-    Description: The id of the vpc resource that was created
+    Description: The VPC ID for Apper Challenge
+    Value: !Ref VPC
+    Export:
+      Name: VpcId
+
+  outputVpcCidrBlock:
+    Description: The set of IP addresses for the VPC. For example, 10.0.0.0/16.
     Value:
-      Ref: VPC
+      Fn::GetAtt:
+      - VPC
+      - "CidrBlock"
+    Export:
+      Name: VpcCidrBlock
   
-  outputPublicSubnet:
-    Description: The id of the vpc resource that was created
+  outputVpcDefaultNetworkAcl:
+    Description: The default network ACL ID that is associated with the VPC. For example, acl-814dafe3.
     Value:
-      Ref: PublicSubnet
+      Fn::GetAtt:
+      - VPC
+      - "DefaultNetworkAcl"
+    Export:
+      Name: VpcDefaultNetworkAcl
+
+  outputVpcDefaultSecurityGroup:
+    Description: The default security group ID that is associated with the VPC. For example, sg-b178e0d3.
+    Value:
+      Fn::GetAtt:
+      - VPC
+      - "DefaultSecurityGroup"
+    Export: 
+      Name: VpcDefaultSecurityGroup
+
+  outputPublicSubnets:
+    Description: Public subnets for each AZ as comma-separted list
+    Value:
+      Fn::Join:
+      - ','
+      - - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
 
   outputPrivateSubnets:
     Description: Private subnets for each AZ as comma-separted list
     Value:
       Fn::Join:
       - ','
-      - - !Ref PrivateSubnetAZ1
-        - !Ref PrivateSubnetAZ2
-  
+      - - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+
+  outputDatabaseSubnets:
+    Description: Private subnets for each AZ as comma-separted list
+    Value:
+      Fn::Join:
+      - ','
+      - - !Ref DatabaseSubnet1
+        - !Ref DatabaseSubnet2
+

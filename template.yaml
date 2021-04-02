@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Common template for provisioning resources needed for the Challenges
+
+Resources:
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: cloudformation/vpc.yaml
+
+
+
+      
+
+
+      
