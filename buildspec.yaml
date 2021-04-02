@@ -1,0 +1,18 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 10
+  build:
+    commands:
+      - echo Installing source NPM dependencies...
+      - cd $CODEBUILD_SRC_DIR/src
+      - npm install
+      
+artifacts:
+  nodejs_artifacts:
+    base-directory: src 
+    files:
+      - index.js
+      - package.json

@@ -10,25 +10,6 @@ Resources:
         PublicSubnetCIDR: 10.0.1.0/24
         PrivateSubnet1Cidr: 10.0.2.0/24
         PrivateSubnet2Cidr: 10.0.3.0/24
-
-  SecurityGroups:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: 
-      Parameters:
-        EnvironmentName: !Ref AWS::StackName
-        VPC: !GetAtt VPC.Outputs.VPC
-
-  ALB:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: 
-      Parameters:
-        EnvironmentName: !Ref AWS::StackName
-        VPC: !GetAtt VPC.Outputs.VPC
-        Subnets: !GetAtt VPC.Outputs.PublicSubnets
-        SecurityGroup: !GetAtt SecurityGroups.Outputs.LoadBalancerSecurityGroup
-
  
 
 Outputs:
