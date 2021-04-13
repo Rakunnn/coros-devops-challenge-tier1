@@ -1,15 +1,104 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Common template for provisioning resources needed for the Challenges
+Description: AWS main template for deploying nested cloudformation stacks
+Parameters:
+  SubdomainPrefix:
+    Default: racoros
+    Description: Please enter the subdomain prefix
+    Type: String
 
 Resources:
-  VPC:
+  PyPlate:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: cloudformation/vpc.yaml
+      TemplateURL: pyplate.yaml
+  
+  Certificates:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: certificates.yaml
+      Parameters:
+        SubdomainPrefix: !Ref SubdomainPrefix
+  
+  VpcStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: resources/vpc.yaml
+    DependsOn: PyPlate
+  RdsStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - PyPlate
+      - VpcStack
+    Properties:
+      TemplateURL: resources/rds.yaml
+      Parameters:
+        DBAppCIDR:
+          Fn::Join: 
+            - ','
+            -
+              - Fn::GetAtt:
+                - VpcStack
+                - Outputs.outputPrivateSubnet1Cidr
+              - Fn::GetAtt:
+                - VpcStack
+                - Outputs.outputPrivateSubnet2Cidr
+        VPCId:
+          Fn::GetAtt:
+          - VpcStack
+          - Outputs.outputVpcId
+        DBSubnetGroupIDs:
+          Fn::Join:
+            - ','
+            -
+              - Fn::GetAtt:
+                - VpcStack
+                - Outputs.outputDatabaseSubnet1
+              - Fn::GetAtt:
+                - VpcStack
+                - Outputs.outputDatabaseSubnet2
+ 
+  EBTierOneStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - PyPlate
+      - VpcStack
+      - RdsStack
+    Properties:
+      TemplateURL: resources/beanstalk.yaml
+      Parameters:
+        VPCId:
+          Fn::GetAtt:
+          - VpcStack
+          - Outputs.VPCId
+        PublicCIDRs:
+          Fn::Join:
+            - ','
+            -
+              - Fn::GetAtt:
+                - VpcStack
+                - Outputs.outputPublicSubnet1Cidr
+              - Fn::GetAtt:
+                - VpcStack
+                - Outputs.outputPublicSubnet2Cidr
+        PublicSubnets:
+          Fn::Join:
+            - ','
+            -
+              - Fn::GetAtt:
+                - VpcStack
+                - Outputs.outputPublicSubnet1
+              - Fn::GetAtt:
+                - VpcStack
+                - Outputs.outputPublicSubnet2
+        PrivateSubnets:
+          Fn::Join:
+            - ','
+            -
+              - Fn::GetAtt:
+                - VpcStack
+                - Outputs.outputPrivateSubnet1
+              - Fn::GetAtt:
+                - VpcStack
+                - Outputs.outputPrivateSubnet2
 
-
-
-      
-
-
-      
+                

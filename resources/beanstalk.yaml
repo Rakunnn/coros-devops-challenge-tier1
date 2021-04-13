@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS templates provisions elastic beanstalk application and environment
+
+Transform: [PyPlate]
+
+Parameters:
+  ApplicationName:
+    Default: racoros-tier1
+    Description: Please enter the application name
+    Type: String
+
+  Description:
+    Default: NodeJS Elastic Beanstalk App for Tier 1 Challenge
+    Description: Please enter the description
+    Type: String
+
+  EnvironmentName:
+    Default: racoros-tier1-dev
+    Description: Please enter the EnvironmentName
+    Type: String
+
+  EC2KeyName:
+    Default: racoros-apper
+    Description: Please enter the EC2 Key Name
+    Type: String
+
+  InstanceTypes:
+    Default: "t3a.micro,t3a.small"
+    ConstraintDescription: "Must be a comma seperated list of Instance Types: Refer to this link for the instance type names https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html"
+    Type: String
+
+  VPCId:
+    Description: Please enter the VPC ID
+    Type: AWS::EC2::VPC::Id
+
+  DomainName:
+    Default: racoros-tier1.apperdevops.com
+    Description: Please enter Domain name
+    Type: String
+
+  SecurityGroupName:
+    Default: SecurityGroup
+    Description: Security Group for racoros Applicate/web server resources.
+    Type: String
+
+  SecurityGroupDescription:
+    Default: Security Group for racoros Applicate/web server resources.
+    Description: Please Enter Security Group Description
+    Type: String
+
+  Port:
+    Default: 1337
+    Description: Please enter a port/port range
+    Type: String
+
+  PublicCIDRs:
+    Default: '10.4.1.0/24,10.4.2.0/24'
+    Description: List of Public IP CDIRs
+    ConstraintDescription: "Must be a comma seperated list of subnet IDs"
+    Type: CommaDelimitedList
+
+  PublicSubnets:
+    Description: List of Public Subnet Ids
+    ConstraintDescription: "Must be a comma seperated list of subnet IDs"
+    Type: CommaDelimitedList
+
+  PrivateSubnets:
+    Description: List of Private Subnet Ids
+    ConstraintDescription: "Must be a comma seperated list of subnet IDs"
+    Type: CommaDelimitedList
+
+Resources:
+  EBWebTierIAMRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: EBWebTierIAMRole
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+
+  EBWebTierInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      InstanceProfileName: EBWebTierInstanceProfile
+      Path: String
+      Roles: 
+        - EBWebTierIAMRole

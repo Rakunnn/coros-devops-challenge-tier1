@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: This template creates certificates for tier1, tier2, tier3 challenges
+
+Parameters:
+  SubdomainPrefix:
+    Default: racoros
+    Description: Please enter the subdomain prefix
+    Type: String
+
+Resources:
+  Tier1Certificate:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: resources/certificate-manager.yaml
+      Parameters:
+        DomainName: !Sub ${SubdomainPrefix}-tier1.apperdevops.com
+
+Outputs:
+  outTier1Certificate:
+    Description: Tier One SSL Certificate
+    Value: !Ref Tier1Certificate
+    Export:
+      Name:
+        'Fn::Sub': '${AWS::StackName}-TierOneCertificate'
